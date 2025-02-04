@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starship Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: black; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        class Starship {
+            constructor() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.size = 40;
+                this.speed = 5;
+                this.dx = 0;
+                this.dy = 0;
+            }
+            draw() {
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y - this.size);
+                ctx.lineTo(this.x - this.size / 2, this.y + this.size / 2);
+                ctx.lineTo(this.x + this.size / 2, this.y + this.size / 2);
+                ctx.closePath();
+                ctx.fill();
+                this.drawBoosters();
+            }
+            drawBoosters() {
+                if (this.dx !== 0 || this.dy !== 0) {
+                    ctx.fillStyle = "orange";
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y + this.size / 2);
+                    ctx.lineTo(this.x - this.size / 4, this.y + this.size);
+                    ctx.lineTo(this.x + this.size / 4, this.y + this.size / 2);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            move() {
+                this.x += this.dx;
+                this.y += this.dy;
+                if (this.x < 0) this.x = 0;
+                if (this.x > canvas.width) this.x = canvas.width;
+                if (this.y < 0) this.y = 0;
+                if (this.y > canvas.height) this.y = canvas.height;
+            }
+        }
+        
+        class Asteroid {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = -50;
+                this.size = Math.random() * 40 + 20;
+                this.speed = Math.random() * 3 + 2;
+            }
+            draw() {
+                ctx.fillStyle = "gray";
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                this.drawTrail();
+            }
+            drawTrail() {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+                ctx.beginPath();
+                ctx.arc(this.x, this.y + this.size, this.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            move() {
+                this.y += this.speed;
+            }
+        }
+        
+        let ship = new Starship();
+        let asteroids = [];
+        let keys = {};
+        
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ship.move();
+            ship.draw();
+            if (Math.random() < 0.02) asteroids.push(new Asteroid());
+            asteroids.forEach((asteroid, index) => {
+                asteroid.move();
+                asteroid.draw();
+                if (asteroid.y > canvas.height) asteroids.splice(index, 1);
+                if (detectCollision(ship, asteroid)) resetGame();
+            });
+            requestAnimationFrame(update);
+        }
+        
+        function detectCollision(ship, asteroid) {
+            const dx = ship.x - asteroid.x;
+            const dy = ship.y - asteroid.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < ship.size / 2 + asteroid.size;
+        }
+        
+        function resetGame() {
+            alert("Game Over! Restarting...");
+            ship = new Starship();
+            asteroids = [];
+        }
+        
+        window.addEventListener("keydown", (e) => {
+            keys[e.key] = true;
+            if (keys["ArrowUp"]) ship.dy = -ship.speed;
+            if (keys["ArrowDown"]) ship.dy = ship.speed;
+            if (keys["ArrowLeft"]) ship.dx = -ship.speed;
+            if (keys["ArrowRight"]) ship.dx = ship.speed;
+        });
+        
+        window.addEventListener("keyup", (e) => {
+            keys[e.key] = false;
+            if (!keys["ArrowUp"] && !keys["ArrowDown"]) ship.dy = 0;
+            if (!keys["ArrowLeft"] && !keys["ArrowRight"]) ship.dx = 0;
+        });
+        
+        update();
+    </script>
+</body>
+</html>
